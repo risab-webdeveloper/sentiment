@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sentiment Analyzer</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+    <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-xl p-8">
+
+        <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">
+            Sentiment Analyzer Dashboard
+        </h1>
+
+        <!-- Upload Section -->
+        <div class="mb-10">
+            <h2 class="text-xl font-semibold mb-2 text-gray-700">
+                Upload CSV to Train Toxicity Model
+            </h2>
+
+            <form id="trainForm" enctype="multipart/form-data"
+                  class="flex items-center gap-4 bg-gray-50 p-4 rounded-lg border">
+
+                <input type="file" name="file"
+                       class="block w-full text-sm text-gray-900 border border-gray-300 
+                              rounded-lg cursor-pointer bg-gray-100" />
+
+                <button type="submit"
+                        class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">
+                    Train
+                </button>
+            </form>
+
+            <p id="trainResult" class="mt-3 text-green-600 font-medium"></p>
+        </div>
+
+        <hr class="my-8">
+
+        <!-- Single Prediction -->
+        <div class="mb-10">
+            <h2 class="text-xl font-semibold mb-2 text-gray-700">
+                Single Comment Sentiment + Toxic Analysis
+            </h2>
+
+            <div class="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border">
+
+                <input type="text" id="singleText"
+                       placeholder="Enter comment..."
+                       class="flex-1 border border-gray-300 px-3 py-2 rounded-lg" />
+
+                <button onclick="predictSingle()"
+                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                    Analyze
+                </button>
+            </div>
+
+            <pre id="singleResult"
+                 class="mt-3 bg-gray-900 text-green-300 p-4 rounded-lg"></pre>
+        </div>
+
+        <hr class="my-8">
+
+        <!-- Bulk Prediction -->
+        <div>
+            <h2 class="text-xl font-semibold mb-2 text-gray-700">
+                Bulk Sentiment & Toxic Analysis (comma-separated)
+            </h2>
+
+            <textarea id="bulkText" rows="4" cols="50"
+                      class="w-full border border-gray-300 p-3 rounded-lg bg-gray-50"
+                      placeholder="Enter multiple comments separated by commas..."></textarea>
+
+            <button onclick="predictBulk()"
+                    class="mt-3 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                Analyze Bulk
+            </button>
+
+            <pre id="bulkResult"
+                 class="mt-4 bg-gray-900 text-green-300 p-4 rounded-lg overflow-auto max-h-60"></pre>
+        </div>
+
+    </div>
+
+    <!-- JS -->
+    <script>
+
+        // TRAIN MODEL
+        document.getElementById("trainForm").onsubmit = async (e) => {
+            e.preventDefault();
+            let formData = new FormData(e.target);
+
+            const res = await fetch("/train", { method: "POST", body: formData });
+            const data = await res.json();
+
+            document.getElementById("trainResult").innerText =
+                "Model trained! Accuracy: " + data.accuracy;
+        };
+
+
+        // SINGLE COMMENT ANALYSIS
+        async function predictSingle() {
+            const text = document.getElementById("singleText").value.trim();
+
+            if (!text) {
+                alert("Please enter text");
+                return;
+            }
+
+            const res = await fetch("/analyze_bulk", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ texts: [text] })
+            });
+
+            const data = await res.json();
+
+            document.getElementById("singleResult").innerText =
+                JSON.stringify(data.results[0], null, 2);
+        }
+
+
+        // BULK COMMENT ANALYSIS
+        async function predictBulk() {
+            const raw = document.getElementById("bulkText").value;
+            const texts = raw.split(",").map(t => t.trim()).filter(t => t.length > 0);
+
+            if (texts.length === 0) {
+                alert("Please enter at least one comment");
+                return;
+            }
+
+            const res = await fetch("/analyze_bulk", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({texts})
+            });
+
+            const json = await res.json();
+
+            document.getElementById("bulkResult").innerText =
+                JSON.stringify(json, null, 2);
+        }
+
+    </script>
+
+</body>
+</html>
