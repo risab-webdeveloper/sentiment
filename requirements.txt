@@ -5,3 +5,6 @@ scikit-learn
 joblib
 nltk
 regex
+python-dotenv
+huggingface-hub
+gunicorn
